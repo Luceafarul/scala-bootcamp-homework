@@ -3,8 +3,8 @@ package com.evolutiongaming.bootcamp.basics
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class BasicHomeworkSpec extends AnyWordSpec with Matchers {
-  import Homework._
+class BasicSpec extends AnyWordSpec with Matchers {
+  import Basic._
 
   "lcd" should {
     "be 6 for 2 and 3" in {
