@@ -14,6 +14,14 @@ class BasicSpec extends AnyWordSpec with Matchers {
     "be 216 for 12 and 18" in {
       lcd(12, 18) shouldBe 36
     }
+
+    "be 0 for 0 and 0" in {
+      lcd(0, 0) shouldBe 0
+    }
+
+    "be 0 for 0 and 7" in {
+      lcd(0, 7) shouldBe 7
+    }
   }
 
   "gcd" should {
