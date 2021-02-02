@@ -25,7 +25,7 @@ object ClassesAndTraits {
   }
 
   sealed trait Movable {
-    def move(dx: Double, dy: Double): Shape
+    def move(dx: Double, dy: Double): Movable
   }
 
   sealed trait Located {
@@ -40,19 +40,12 @@ object ClassesAndTraits {
     def maxY: Double
   }
 
-  final case class Point(x: Double, y: Double) extends Shape {
+  final case class Point(x: Double, y: Double) extends Located with Movable {
     def distance(that: Point): Double =
       Math.sqrt(Math.pow(that.x - this.x, 2) + Math.pow(that.y - this.y, 2))
 
-    override def minX: Double = x
-    override def maxX: Double = x
-    override def minY: Double = y
-    override def maxY: Double = y
-
     override def move(dx: Double, dy: Double): Point =
       Point(x + dx, y + dy)
-
-    override def area: Double = throw new UnsupportedOperationException("Point does not have area")
   }
 
   final case class Circle(centerX: Double, centerY: Double, radius: Double) extends Shape {
@@ -121,7 +114,7 @@ object ClassesAndTraits {
   sealed trait Shape3D extends Located3D with Movable3D with SurfaceArea with Volume with Bounded3D
 
   sealed trait Movable3D {
-    def move(dx: Double, dy: Double, dz: Double): Shape3D
+    def move(dx: Double, dy: Double, dz: Double): Movable3D
   }
 
   sealed trait Located3D {
@@ -147,22 +140,9 @@ object ClassesAndTraits {
     def volume: Double
   }
 
-  final case class Point3D(x: Double, y: Double, z: Double) extends Shape3D {
-    override def minX: Double = x
-    override def maxX: Double = x
-    override def minY: Double = y
-    override def maxY: Double = y
-    override def minZ: Double = z
-    override def maxZ: Double = z
-
+  final case class Point3D(x: Double, y: Double, z: Double) extends Located3D with Movable3D  {
     override def move(dx: Double, dy: Double, dz: Double): Point3D =
       Point3D(x + dx, y + dy, z + dz)
-
-    override def volume: Double =
-      throw new UnsupportedOperationException("Point in 3D dimension does not have volume")
-
-    override def surfaceArea: Double =
-      throw new UnsupportedOperationException("Point in 3D dimension does not have surface area")
   }
 
   final case class Sphere(centerX: Double, centerY: Double, centerZ: Double, radius: Double)
