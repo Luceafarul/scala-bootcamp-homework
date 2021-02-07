@@ -35,6 +35,12 @@ object ControlStructure {
     final case class Average(numbers: List[Double]) extends Command
     final case class Min(numbers: List[Double]) extends Command
     final case class Max(numbers: List[Double]) extends Command
+
+    val DIVIDE = "divide"
+    val SUM = "sum"
+    val AVERAGE = "average"
+    val MIN = "min"
+    val MAX = "max"
   }
 
   final case class ErrorMessage(value: String)
@@ -46,13 +52,52 @@ object ControlStructure {
   final case class ChangeMe(value: String) extends Result
 
   def parseCommand(x: String): Either[ErrorMessage, Command] = {
-    ??? // implement this method
+    import Command._
+
+    x.toLowerCase.split(" ").filterNot(_.isBlank).toList match {
+      case DIVIDE :: tail =>
+        checkDivideArguments(tail)
+      case SUM :: tail =>
+        if (checkListArguments(tail)) Right(Sum(tail.map(_.toDouble)))
+        else Left(ErrorMessage(s"Arguments for command $SUM should be a numbers"))
+      case AVERAGE :: tail =>
+        if (checkListArguments(tail)) Right(Average(tail.map(_.toDouble)))
+        else Left(ErrorMessage(s"Arguments for command $AVERAGE should be a numbers"))
+      case MIN :: tail =>
+        if (checkListArguments(tail)) Right(Min(tail.map(_.toDouble)))
+        else Left(ErrorMessage(s"Arguments for command $MIN should be a numbers"))
+      case MAX :: tail =>
+        if (checkListArguments(tail)) Right(Max(tail.map(_.toDouble)))
+        else Left(ErrorMessage(s"Arguments for command $MAX should be a numbers"))
+      case _ => Left(ErrorMessage(
+        s"""Wrong command. Use one of this:
+           |$DIVIDE first number second number
+           |$SUM list of numbers
+           |$AVERAGE list of numbers
+           |$MIN list of numbers
+           |$MAX list of numbers
+           |For all command arguments separator is  whitespace""".stripMargin))
+    }
     // Implementation hints:
     // You can use String#split, convert to List using .toList, then pattern match on:
     //   case x :: xs => ???
 
     // Consider how to handle extra whitespace gracefully (without errors).
   }
+
+  def checkDivideArguments(xs: List[String]): Either[ErrorMessage, Command] = {
+    import Command._
+    if (xs.length != 2 || xs.forall(!_.matches("[+-]?([0-9]*[.])?[0-9]+")))
+      Left(ErrorMessage("divide command should contains only two arguments and it's should be a numbers"))
+    else
+      Right(Divide(xs.head.toDouble, xs.last.toDouble))
+  }
+
+  // TODO rename this method
+  // TODO extract regex
+  def checkListArguments(xs: List[String]): Boolean =
+    xs.forall(_.matches("[+-]?([0-9]*[.])?[0-9]+"))
+
 
   // should return an error (using `Left` channel) in case of division by zero and other
   // invalid operations
