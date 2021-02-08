@@ -1,8 +1,10 @@
 package com.evolutiongaming.bootcamp.basics
 
 import scala.io.Source
+import com.evolutiongaming.bootcamp.basics.ControlStructure.Command._
 
 object ControlStructure {
+
   // Homework
 
   // Create a command line application that reads various "commands" from the
@@ -49,11 +51,9 @@ object ControlStructure {
   // and remove the `ChangeMe` if you think it is the best model for your solution,
   // or just have other `case class`-es implement `Result`
   sealed trait Result
-  final case class ChangeMe(value: String) extends Result
+  final case class CalculationResult(result: Double, command: Command) extends Result
 
   def parseCommand(x: String): Either[ErrorMessage, Command] = {
-    import Command._
-
     x.toLowerCase.split(" ").filterNot(_.isBlank).toList match {
       case DIVIDE :: tail =>
         checkDivideArguments(tail)
@@ -99,14 +99,40 @@ object ControlStructure {
     xs.forall(_.matches("[+-]?([0-9]*[.])?[0-9]+"))
 
 
-  // should return an error (using `Left` channel) in case of division by zero and other
-  // invalid operations
+  // should return an error (using `Left` channel) in case of division by zero
+  // and other invalid operations
+  // TODO remove .toString
   def calculate(x: Command): Either[ErrorMessage, Result] = {
-    ??? // implement this method
+    x match {
+      case Divide(_, 0) => Left(ErrorMessage("Divided by zero"))
+      case divide @ Divide(dividend, divisor) =>
+        Right(CalculationResult(dividend / divisor, divide))
+      case sum @ Sum(numbers) =>
+        Right(CalculationResult(numbers.sum, sum))
+      case average @ Average(numbers) =>
+        Right(CalculationResult(numbers.sum / numbers.length, average))
+      case min @ Min(numbers) =>
+        Right(CalculationResult(numbers.min, min))
+      case max @ Max(numbers) =>
+        Right(CalculationResult(numbers.max, max))
+      case _ => Left(ErrorMessage("Wrong command"))
+    }
   }
 
+  // TODO remove duplicate string
   def renderResult(x: Result): String = {
-    ??? // implement this method
+    x match {
+      case CalculationResult(result, _ @ Divide(dividend, divisor)) =>
+        s"$dividend divided by $divisor is $result"
+      case CalculationResult(result, _ @ Sum(numbers)) =>
+        s"the sum of ${numbers.mkString("", ", ", "")} is $result"
+      case CalculationResult(result, _ @ Average(numbers)) =>
+        s"the average of ${numbers.mkString("", ", ", "")} is $result"
+      case CalculationResult(result, _ @ Min(numbers)) =>
+        s"the min of ${numbers.mkString("", ", ", "")} is $result"
+      case CalculationResult(result, _ @ Max(numbers)) =>
+        s"the max of ${numbers.mkString("", ", ", "")} is $result"
+    }
   }
 
   def process(x: String): String = {
@@ -115,7 +141,12 @@ object ControlStructure {
     // (map over the Left channel) and `merge` (convert `Either[A, A]` into `A`),
     // but you can also avoid using them using pattern matching.
 
-    ??? // implement using a for-comprehension
+    val result = for {
+      command <- parseCommand(x).leftMap(_.value)
+      result <- calculate(command).leftMap(_.value)
+    } yield renderResult(result)
+
+    result.merge
   }
 
   // This `main` method reads lines from stdin,

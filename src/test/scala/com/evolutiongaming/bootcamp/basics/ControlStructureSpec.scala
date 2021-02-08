@@ -45,4 +45,35 @@ class ControlStructureSpec extends AnyWordSpec with Matchers {
       parseCommand("divide 10       2") shouldBe Right(Divide(10.0, 2.0))
     }
   }
+
+  "calculate" should {
+    "correct calculating divide command" in {
+      calculate(Divide(12.8, 2.4)) shouldBe
+        Right(CalculationResult(5.333333333333334, Divide(12.8, 2.4)))
+    }
+
+    "correct calculating sum command" in {
+      calculate(Sum(List(1, 2, 3, 4, 5))) shouldBe
+        Right(CalculationResult(15.0, Sum(List(1, 2, 3, 4, 5))))
+    }
+
+    "correct calculating average command" in {
+      calculate(Average(List(2.1, 7, 4.5, 9, 13))) shouldBe
+        Right(CalculationResult(7.12, Average(List(2.1, 7, 4.5, 9, 13))))
+    }
+
+    "correct calculating min command" in {
+      calculate(Min(List(-2.2, 7, 5, 9, -13.7))) shouldBe
+        Right(CalculationResult(-13.7, Min(List(-2.2, 7, 5, 9, -13.7))))
+    }
+
+    "correct calculating max command" in {
+      calculate(Max(List(7, 2.1, 13.7, 1, 73))) shouldBe
+        Right(CalculationResult(73.0, Max(List(7, 2.1, 13.7, 1, 73))))
+    }
+
+    "correct handle dived by zero" in {
+      calculate(Divide(12.8, 0)) shouldBe Left(ErrorMessage("Divided by zero"))
+    }
+  }
 }
