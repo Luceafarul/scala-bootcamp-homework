@@ -30,12 +30,34 @@ object Collections {
 
   // https://leetcode.com/problems/widest-vertical-area-between-two-points-containing-no-points
   def maxWidthOfVerticalArea(points: Array[Array[Int]]): Int = {
-    ???
+    val sorted = points
+      .map(_.head)
+      .sortWith(_ < _)
+
+    sorted
+      .tail
+      .scanLeft((0, sorted.head)) { (acc, elem) =>
+        val (_, y) = acc
+        (elem - y) -> elem
+      }
+      .map { case (x, _) => x }
+      .max
   }
 
   // optional hometask:
   //
   // https://leetcode.com/problems/maximum-nesting-depth-of-the-parentheses/
+  def maxDepth(s: String): Int = {
+    ???
+  }
+
   // https://leetcode.com/problems/split-a-string-in-balanced-strings
+  def balancedStringSplit(s: String): Int = {
+    ???
+  }
+
   // https://leetcode.com/problems/matrix-block-sum/
+  def matrixBlockSum(mat: Array[Array[Int]], K: Int): Array[Array[Int]] = {
+    ???
+  }
 }
