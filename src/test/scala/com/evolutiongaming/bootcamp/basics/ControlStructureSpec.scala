@@ -76,4 +76,31 @@ class ControlStructureSpec extends AnyWordSpec with Matchers {
       calculate(Divide(12.8, 0)) shouldBe Left(ErrorMessage("Divided by zero"))
     }
   }
+
+  "renderResult" should {
+    "correct render result of divided" in {
+      renderResult(CalculationResult(5.333333333333334, Divide(12.8, 2.4))) shouldBe
+        "12.8 divided by 2.4 is 5.333333333333334"
+    }
+
+    "correct calculating sum command" in {
+      renderResult(CalculationResult(15.0, Sum(List(1, 2, 3, 4, 5)))) shouldBe
+        "the sum of 1.0 2.0 3.0 4.0 5.0 is 15.0"
+    }
+
+    "correct calculating average command" in {
+      renderResult(CalculationResult(7.12, Average(List(2.1, 7, 4.5, 9, 13)))) shouldBe
+        "the average of 2.1 7.0 4.5 9.0 13.0 is 7.12"
+    }
+
+    "correct calculating min command" in {
+      renderResult(CalculationResult(-13.7, Min(List(-2.2, 7, 5, 9, -13.7)))) shouldBe
+        "the min of -2.2 7.0 5.0 9.0 -13.7 is -13.7"
+    }
+
+    "correct calculating max command" in {
+      renderResult(CalculationResult(73.0, Max(List(7, 2.1, 13.7, 1, 73)))) shouldBe
+        "the max of 7.0 2.1 13.7 1.0 73.0 is 73.0"
+    }
+  }
 }

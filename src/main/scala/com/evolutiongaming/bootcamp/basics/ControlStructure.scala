@@ -59,33 +59,28 @@ object ControlStructure {
         checkDivideArguments(tail)
       case SUM :: tail =>
         if (checkListArguments(tail)) Right(Sum(tail.map(_.toDouble)))
-        else Left(ErrorMessage(s"Arguments for command $SUM should be a numbers"))
+        else Left(generalErrorMessage(SUM))
       case AVERAGE :: tail =>
         if (checkListArguments(tail)) Right(Average(tail.map(_.toDouble)))
-        else Left(ErrorMessage(s"Arguments for command $AVERAGE should be a numbers"))
+        else Left(generalErrorMessage(AVERAGE))
       case MIN :: tail =>
         if (checkListArguments(tail)) Right(Min(tail.map(_.toDouble)))
-        else Left(ErrorMessage(s"Arguments for command $MIN should be a numbers"))
+        else Left(generalErrorMessage(MIN))
       case MAX :: tail =>
         if (checkListArguments(tail)) Right(Max(tail.map(_.toDouble)))
-        else Left(ErrorMessage(s"Arguments for command $MAX should be a numbers"))
+        else Left(generalErrorMessage(MAX))
       case _ => Left(ErrorMessage(
         s"""Wrong command. Use one of this:
-           |$DIVIDE first number second number
-           |$SUM list of numbers
-           |$AVERAGE list of numbers
-           |$MIN list of numbers
-           |$MAX list of numbers
+           |- $DIVIDE first number second number
+           |- $SUM list of numbers
+           |- $AVERAGE list of numbers
+           |- $MIN list of numbers
+           |- $MAX list of numbers
            |For all command arguments separator is  whitespace""".stripMargin))
     }
-    // Implementation hints:
-    // You can use String#split, convert to List using .toList, then pattern match on:
-    //   case x :: xs => ???
-
-    // Consider how to handle extra whitespace gracefully (without errors).
   }
 
-  def checkDivideArguments(xs: List[String]): Either[ErrorMessage, Command] = {
+  private def checkDivideArguments(xs: List[String]): Either[ErrorMessage, Command] = {
     import Command._
     if (xs.length != 2 || xs.forall(!_.matches("[+-]?([0-9]*[.])?[0-9]+")))
       Left(ErrorMessage("divide command should contains only two arguments and it's should be a numbers"))
@@ -93,15 +88,16 @@ object ControlStructure {
       Right(Divide(xs.head.toDouble, xs.last.toDouble))
   }
 
-  // TODO rename this method
-  // TODO extract regex
-  def checkListArguments(xs: List[String]): Boolean =
-    xs.forall(_.matches("[+-]?([0-9]*[.])?[0-9]+"))
+  private def checkListArguments(xs: List[String]): Boolean = {
+    val onlyNumbers = "[+-]?([0-9]*[.])?[0-9]+"
+    xs.forall(_.matches(onlyNumbers))
+  }
 
+  private def generalErrorMessage(command: String): ErrorMessage =
+    ErrorMessage(s"Arguments for command $command should be a numbers")
 
   // should return an error (using `Left` channel) in case of division by zero
   // and other invalid operations
-  // TODO remove .toString
   def calculate(x: Command): Either[ErrorMessage, Result] = {
     x match {
       case Divide(_, 0) => Left(ErrorMessage("Divided by zero"))
@@ -115,25 +111,27 @@ object ControlStructure {
         Right(CalculationResult(numbers.min, min))
       case max @ Max(numbers) =>
         Right(CalculationResult(numbers.max, max))
-      case _ => Left(ErrorMessage("Wrong command"))
+      case other => Left(ErrorMessage(s"$other command does not exist"))
     }
   }
 
-  // TODO remove duplicate string
   def renderResult(x: Result): String = {
     x match {
       case CalculationResult(result, _ @ Divide(dividend, divisor)) =>
         s"$dividend divided by $divisor is $result"
       case CalculationResult(result, _ @ Sum(numbers)) =>
-        s"the sum of ${numbers.mkString("", ", ", "")} is $result"
+        generalRenderResult(numbers, result, SUM)
       case CalculationResult(result, _ @ Average(numbers)) =>
-        s"the average of ${numbers.mkString("", ", ", "")} is $result"
+        generalRenderResult(numbers, result, AVERAGE)
       case CalculationResult(result, _ @ Min(numbers)) =>
-        s"the min of ${numbers.mkString("", ", ", "")} is $result"
+        generalRenderResult(numbers, result, MIN)
       case CalculationResult(result, _ @ Max(numbers)) =>
-        s"the max of ${numbers.mkString("", ", ", "")} is $result"
+        generalRenderResult(numbers, result, MAX)
     }
   }
+
+  private def generalRenderResult(xs: List[Double], result: Double, command: String): String =
+    s"the $command of ${xs.mkString("", " ", "")} is $result"
 
   def process(x: String): String = {
     import cats.implicits._
