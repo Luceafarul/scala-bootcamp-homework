@@ -24,15 +24,15 @@ object Collections {
   // https://leetcode.com/problems/kids-with-the-greatest-number-of-candies/
   def kidsWithCandies(candies: Array[Int], extraCandies: Int): Array[Boolean] = {
     candies.scanLeft(false) { (_, elem) =>
-      if (candies.forall(elem + extraCandies >= _)) true else false
-    }.drop(1)
+      candies.forall(elem + extraCandies >= _)
+    }.tail
   }
 
   // https://leetcode.com/problems/widest-vertical-area-between-two-points-containing-no-points
   def maxWidthOfVerticalArea(points: Array[Array[Int]]): Int = {
     val sorted = points
       .map(_.head)
-      .sortWith(_ < _)
+      .sorted
 
     sorted
       .tail
