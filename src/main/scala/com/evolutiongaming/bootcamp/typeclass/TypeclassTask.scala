@@ -27,8 +27,6 @@ object TypeclassTask extends App {
   // Define implicit type-class instance for String
   implicit val hashLikeString: HashCode[String] = x => x.hashCode
 
-  // TODO: make an instance for String
-  // TODO: write "abc".hash to check everything
   val res = "abc".hash
   println(res)
 }
