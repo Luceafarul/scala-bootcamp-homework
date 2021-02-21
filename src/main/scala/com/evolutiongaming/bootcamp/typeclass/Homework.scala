@@ -94,5 +94,19 @@ object Task4 extends App {
 }
 
 object AdvancedHomework {
-  // TODO: create a typeclass for flatMap method
+  // remember many things in scala have map?
+  // what about making a typeclass for map
+
+  // the code is commented because it won't compile
+  // find a place for [_] so it compiles
+  //  trait Functor[F] {
+  //    def map[A, B](x: F[A])(f: A => B): F[B]
+  //  }
+
+  // Create a type-class for flatMap method
+  // Read in Functional programming in Scala
+  // that flatMap stored in type Monoid
+  trait Monoid[F[_]] {
+    def flatMap[A, B](a: F[A])(f: A => F[B]): F[B]
+  }
 }
