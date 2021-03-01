@@ -1,12 +1,13 @@
 package com.evolutiongaming.bootcamp.typeclass
 
 object Task1 {
+
   final case class Money(amount: BigDecimal)
 
   implicit val moneyOrdering: Ordering[Money] = (x: Money, y: Money) => x.amount.compare(y.amount)
 }
 
-object Task2 {
+object Task2 extends App {
   trait Show[T] {
     def show(entity: T): String
   }
@@ -15,14 +16,14 @@ object Task2 {
   }
 
   // Create syntax for Show so i can do User("1", "Oleg").show
-  implicit class ShowSyntax[T](x: T) {
-    def show(implicit instance: Show[T]): String = instance.show(x)
+  implicit class ShowSyntax[T: Show](x: T) {
+    // Without using implicitly, if uncomment -- comment method below
+    // def show(implicit instance: Show[T]): String = instance.show(x)
 
-    // TODO: how to rewrite this example with using implicitly?
-    // def show[T]: String = {
-    //   val instance = implicitly[Show[T]]
-    //   instance.show(x)
-    // }
+    def show: String = {
+      val instance = implicitly[Show[T]]
+      instance.show(x)
+    }
   }
 
   // Create Show instance for User
@@ -32,7 +33,7 @@ object Task2 {
 
   final case class User(id: String, name: String)
 
-  User("1", "Oleg").show
+  println(User("1", "Oleg").show)
 }
 
 object Task3 {
@@ -41,6 +42,7 @@ object Task3 {
   trait Parse[T] { // invent any format you want or it can be csv string
     def parse(entity: String): Either[Error, T]
   }
+
   object Parse {
     def apply[T](implicit instance: Parse[T]): Parse[T] = instance
   }
@@ -94,6 +96,7 @@ object Task4 extends App {
 }
 
 object AdvancedHomework {
+
   // remember many things in scala have map?
   // what about making a typeclass for map
 
