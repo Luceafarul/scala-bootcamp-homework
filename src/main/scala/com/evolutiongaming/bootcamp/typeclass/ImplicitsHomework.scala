@@ -122,8 +122,22 @@ object ImplicitsHomework {
       implicit val arrayIterate: Iterate[Array] = new Iterate[Array] {
         override def iterator[T](f: Array[T]): Iterator[T] = f.iterator
       }
+
       //Provide Iterate2 instances for Map and PackedMultiMap!
       //if the code doesn't compile while you think it should - sometimes full rebuild helps!
+      implicit val mapIterate2: Iterate2[Map] = new Iterate2[Map] {
+        override def iterator1[T, S](f: Map[T, S]): Iterator[T] = f.keys.iterator
+
+        override def iterator2[T, S](f: Map[T, S]): Iterator[S] = f.values.iterator
+      }
+
+      implicit val packedMultiMapIterate2: Iterate2[PackedMultiMap] = new Iterate2[PackedMultiMap] {
+        override def iterator1[T, S](f: PackedMultiMap[T, S]): Iterator[T] =
+          f.inner.map { case (k, _) => k }.iterator
+
+        override def iterator2[T, S](f: PackedMultiMap[T, S]): Iterator[S] =
+          f.inner.map { case (_, v) => v }.iterator
+      }
 
       /*
       replace this big guy with proper implicit instances for types:
