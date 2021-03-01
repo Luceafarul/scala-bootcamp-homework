@@ -34,26 +34,12 @@ object ImplicitsHomework {
     }
 
     object syntax {
-      private val BYTE_SCORE = 1
-      private val CHAR_SCORE = 2
-      private val INT_SCORE = 4
-      private val LONG_SCORE = 8
-      private val OBJECT_SCORE = 12
-
       implicit class GetSizeScoreOps[T: GetSizeScore](inner: T) {
-        def sizeScore: SizeScore = inner match {
-          case _: Byte => BYTE_SCORE
-          case _: Char => CHAR_SCORE
-          case _: Int => INT_SCORE
-          case _: Long => LONG_SCORE
-          case s: String => OBJECT_SCORE + s.length * CHAR_SCORE
-          case pmm: PackedMultiMap[_, _] => OBJECT_SCORE
-          case xs: Array[T] => OBJECT_SCORE
-          case xs: Seq[T] => OBJECT_SCORE
-          case map: Map[_, _] => OBJECT_SCORE
+        def sizeScore: SizeScore = {
+          val instance = implicitly[GetSizeScore[T]]
+          instance.apply(inner)
         }
       }
-
     }
 
     /**
@@ -140,7 +126,57 @@ object ImplicitsHomework {
       start by writing instances for List and other collections
       and then replace those with generic instances.
        */
-      implicit def stubGetSizeScore[T]: GetSizeScore[T] = (_: T) => 42
+
+      private val BYTE_SCORE = 1
+      private val CHAR_SCORE = 2
+      private val INT_SCORE = 4
+      private val LONG_SCORE = 8
+      private val OBJECT_SCORE = 12
+
+//      implicit def stubGetSizeScore[T]: GetSizeScore[T] = (_: T) => 42
+
+      implicit val byteGetSizeScore: GetSizeScore[Byte] = (_: Byte) => BYTE_SCORE
+      implicit val charGetSizeScore: GetSizeScore[Char] = (_: Char) => CHAR_SCORE
+      implicit val intGetSizeScore: GetSizeScore[Int] = (_: Int) => INT_SCORE
+      implicit val longGetSizeScore: GetSizeScore[Long] = (_: Long) => LONG_SCORE
+
+      implicit val stringGetSizeScore: GetSizeScore[String] = (s: String) =>
+        OBJECT_SCORE + s.length * CHAR_SCORE
+
+      implicit def listGetSizeScore[T: GetSizeScore]: GetSizeScore[List[T]] = (xs: List[T]) =>
+        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+
+      implicit def seqGetSizeScore[T: GetSizeScore]: GetSizeScore[Seq[T]] = (xs: Seq[T]) =>
+        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+
+      implicit def vectorGetSizeScore[T: GetSizeScore]: GetSizeScore[Vector[T]] = (xs: Vector[T]) =>
+        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+
+      implicit def arrayGetSizeScore[T: GetSizeScore]: GetSizeScore[Array[T]] = (xs: Array[T]) =>
+        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+
+      implicit def mapGetSizeScore[K: GetSizeScore, V: GetSizeScore]: GetSizeScore[Map[K, V]] =
+        (map: Map[K, V]) =>
+          OBJECT_SCORE + map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
+            map.values.map(v => implicitly[GetSizeScore[V]].apply(v)).sum
+
+      implicit def packedMultiMapGetSizeScore[K: GetSizeScore, V: GetSizeScore]: GetSizeScore[PackedMultiMap[K, V]] =
+        (pmm: PackedMultiMap[K, V]) =>
+          OBJECT_SCORE + pmm.inner.map { case (k, v) =>
+            implicitly[GetSizeScore[K]].apply(k) + implicitly[GetSizeScore[V]].apply(v)
+          }.sum
+
+      //          inner match {
+      //          case _: Byte => BYTE_SCORE
+      //          case _: Char => CHAR_SCORE
+      //          case _: Int => INT_SCORE
+      //          case _: Long => LONG_SCORE
+      //          case s: String => OBJECT_SCORE + s.length * CHAR_SCORE
+      //          case pmm: PackedMultiMap[_, _] => OBJECT_SCORE
+      //          case xs: Array[T] => OBJECT_SCORE
+      //          case xs: Seq[T] => OBJECT_SCORE
+      //          case map: Map[_, _] => OBJECT_SCORE
+      //        }
     }
 
   }
