@@ -34,12 +34,14 @@ object ImplicitsHomework {
     }
 
     object syntax {
+
       implicit class GetSizeScoreOps[T: GetSizeScore](inner: T) {
         def sizeScore: SizeScore = {
           val instance = implicitly[GetSizeScore[T]]
           instance.apply(inner)
         }
       }
+
     }
 
     /**
@@ -66,10 +68,19 @@ object ImplicitsHomework {
       private val map = mutable.LinkedHashMap.empty[K, V]
 
       def put(key: K, value: V): Unit = {
-        map + (key -> value)
+        map.put(key, value)
+        if (currentSizeScore() > maxSizeScore) {
+          val newest = map.drop(map.size - 2)
+          map.clear()
+          map ++= newest
+        }
       }
 
       def get(key: K): Option[V] = map.get(key)
+
+      private def currentSizeScore(): SizeScore =
+      map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
+        map.values.map(v => implicitly[GetSizeScore[V]].apply(v)).sum
     }
 
     /**
@@ -133,7 +144,7 @@ object ImplicitsHomework {
       private val LONG_SCORE = 8
       private val OBJECT_SCORE = 12
 
-//      implicit def stubGetSizeScore[T]: GetSizeScore[T] = (_: T) => 42
+      //      implicit def stubGetSizeScore[T]: GetSizeScore[T] = (_: T) => 42
 
       implicit val byteGetSizeScore: GetSizeScore[Byte] = (_: Byte) => BYTE_SCORE
       implicit val charGetSizeScore: GetSizeScore[Char] = (_: Char) => CHAR_SCORE
@@ -165,20 +176,7 @@ object ImplicitsHomework {
           OBJECT_SCORE + pmm.inner.map { case (k, v) =>
             implicitly[GetSizeScore[K]].apply(k) + implicitly[GetSizeScore[V]].apply(v)
           }.sum
-
-      //          inner match {
-      //          case _: Byte => BYTE_SCORE
-      //          case _: Char => CHAR_SCORE
-      //          case _: Int => INT_SCORE
-      //          case _: Long => LONG_SCORE
-      //          case s: String => OBJECT_SCORE + s.length * CHAR_SCORE
-      //          case pmm: PackedMultiMap[_, _] => OBJECT_SCORE
-      //          case xs: Array[T] => OBJECT_SCORE
-      //          case xs: Seq[T] => OBJECT_SCORE
-      //          case map: Map[_, _] => OBJECT_SCORE
-      //        }
     }
-
   }
 
   /*
