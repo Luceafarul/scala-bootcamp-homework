@@ -70,17 +70,20 @@ object ImplicitsHomework {
       def put(key: K, value: V): Unit = {
         map.put(key, value)
         if (currentSizeScore() > maxSizeScore) {
-          val newest = map.drop(map.size - 2)
-          map.clear()
-          map ++= newest
+          // TODO remove whilee loop
+          while (currentSizeScore() > maxSizeScore) {
+            var newest = map.drop(1)
+            map.clear()
+            map ++= newest
+          }
         }
       }
 
       def get(key: K): Option[V] = map.get(key)
 
       private def currentSizeScore(): SizeScore =
-      map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
-        map.values.map(v => implicitly[GetSizeScore[V]].apply(v)).sum
+        map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
+          map.values.map(v => implicitly[GetSizeScore[V]].apply(v)).sum
     }
 
     /**
@@ -152,6 +155,8 @@ object ImplicitsHomework {
       and then replace those with generic instances.
        */
 
+      import SuperVipCollections4s.syntax._
+
       private val BYTE_SCORE = 1
       private val CHAR_SCORE = 2
       private val INT_SCORE = 4
@@ -169,17 +174,18 @@ object ImplicitsHomework {
         OBJECT_SCORE + s.length * CHAR_SCORE
 
       implicit def listGetSizeScore[T: GetSizeScore]: GetSizeScore[List[T]] = (xs: List[T]) =>
-        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+        OBJECT_SCORE + xs.map(elem => elem.sizeScore).sum
 
       implicit def seqGetSizeScore[T: GetSizeScore]: GetSizeScore[Seq[T]] = (xs: Seq[T]) =>
-        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+        OBJECT_SCORE + xs.map(elem => elem.sizeScore).sum
 
       implicit def vectorGetSizeScore[T: GetSizeScore]: GetSizeScore[Vector[T]] = (xs: Vector[T]) =>
-        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+        OBJECT_SCORE + xs.map(elem => elem.sizeScore).sum
 
       implicit def arrayGetSizeScore[T: GetSizeScore]: GetSizeScore[Array[T]] = (xs: Array[T]) =>
-        OBJECT_SCORE + xs.map(elem => implicitly[GetSizeScore[T]].apply(elem)).sum
+        OBJECT_SCORE + xs.map(elem => elem.sizeScore).sum
 
+      // TODO: Look at Iterate2
       implicit def mapGetSizeScore[K: GetSizeScore, V: GetSizeScore]: GetSizeScore[Map[K, V]] =
         (map: Map[K, V]) =>
           OBJECT_SCORE + map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
@@ -190,7 +196,18 @@ object ImplicitsHomework {
           OBJECT_SCORE + pmm.inner.map { case (k, v) =>
             implicitly[GetSizeScore[K]].apply(k) + implicitly[GetSizeScore[V]].apply(v)
           }.sum
+
+      implicit val twitGetSizeScore: GetSizeScore[MyTwitter.Twit] =
+        (twit: MyTwitter.Twit) =>
+          twit.id.sizeScore + twit.userId.sizeScore + twit.hashTags.sizeScore +
+            twit.attributes.sizeScore + twit.fbiNotes.sizeScore
+
+      implicit val fbiNoteGetSizeScore: GetSizeScore[MyTwitter.FbiNote] =
+        (fbiNote: MyTwitter.FbiNote) =>
+          fbiNote.month.sizeScore + fbiNote.favouriteChar.sizeScore +
+            fbiNote.watchedPewDiePieTimes.sizeScore
     }
+
   }
 
   /*
@@ -200,6 +217,7 @@ object ImplicitsHomework {
   object MyTwitter {
 
     import SuperVipCollections4s._
+    import instances._
 
     final case class Twit(
       id: Long,
@@ -224,7 +242,13 @@ object ImplicitsHomework {
     /*
     Return an implementation based on MutableBoundedCache[Long, Twit]
      */
-    def createTwitCache(maxSizeScore: SizeScore): TwitCache = ???
+    def createTwitCache(maxSizeScore: SizeScore): TwitCache = new TwitCache {
+      val cache = new MutableBoundedCache[Long, Twit](maxSizeScore)
+
+      override def put(twit: Twit): Unit = cache.put(twit.id, twit)
+
+      override def get(id: Long): Option[Twit] = cache.get(id)
+    }
   }
 
 }
