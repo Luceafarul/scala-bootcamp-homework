@@ -69,13 +69,10 @@ object ImplicitsHomework {
 
       def put(key: K, value: V): Unit = {
         map.put(key, value)
-        if (currentSizeScore() > maxSizeScore) {
-          // TODO remove whilee loop
-          while (currentSizeScore() > maxSizeScore) {
-            var newest = map.drop(1)
-            map.clear()
-            map ++= newest
-          }
+        while (currentSizeScore() > maxSizeScore) {
+          val newest = map.drop(1)
+          map.clear()
+          map ++= newest
         }
       }
 
@@ -185,17 +182,13 @@ object ImplicitsHomework {
       implicit def arrayGetSizeScore[T: GetSizeScore]: GetSizeScore[Array[T]] = (xs: Array[T]) =>
         OBJECT_SCORE + xs.map(elem => elem.sizeScore).sum
 
-      // TODO: Look at Iterate2
       implicit def mapGetSizeScore[K: GetSizeScore, V: GetSizeScore]: GetSizeScore[Map[K, V]] =
         (map: Map[K, V]) =>
-          OBJECT_SCORE + map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
-            map.values.map(v => implicitly[GetSizeScore[V]].apply(v)).sum
+          OBJECT_SCORE + map.map { case (k, v) => k.sizeScore + v.sizeScore }.sum
 
       implicit def packedMultiMapGetSizeScore[K: GetSizeScore, V: GetSizeScore]: GetSizeScore[PackedMultiMap[K, V]] =
         (pmm: PackedMultiMap[K, V]) =>
-          OBJECT_SCORE + pmm.inner.map { case (k, v) =>
-            implicitly[GetSizeScore[K]].apply(k) + implicitly[GetSizeScore[V]].apply(v)
-          }.sum
+          OBJECT_SCORE + pmm.inner.map { case (k, v) => k.sizeScore + v.sizeScore }.sum
 
       implicit val twitGetSizeScore: GetSizeScore[MyTwitter.Twit] =
         (twit: MyTwitter.Twit) =>
