@@ -60,6 +60,7 @@ object ImplicitsHomework {
      */
     final class MutableBoundedCache[K: GetSizeScore, V: GetSizeScore](maxSizeScore: SizeScore) {
       //with this you can use .sizeScore syntax on keys and values
+
       import SuperVipCollections4s.syntax._
 
       /**
@@ -113,6 +114,7 @@ object ImplicitsHomework {
     }
 
     object instances {
+      import syntax._
 
       implicit val iterableOnceIterate: Iterate[Iterable] = new Iterate[Iterable] {
         override def iterator[T](f: Iterable[T]): Iterator[T] = f.iterator
@@ -160,8 +162,6 @@ object ImplicitsHomework {
       private val LONG_SCORE = 8
       private val OBJECT_SCORE = 12
 
-      //      implicit def stubGetSizeScore[T]: GetSizeScore[T] = (_: T) => 42
-
       implicit val byteGetSizeScore: GetSizeScore[Byte] = (_: Byte) => BYTE_SCORE
       implicit val charGetSizeScore: GetSizeScore[Char] = (_: Char) => CHAR_SCORE
       implicit val intGetSizeScore: GetSizeScore[Int] = (_: Int) => INT_SCORE
@@ -169,6 +169,12 @@ object ImplicitsHomework {
 
       implicit val stringGetSizeScore: GetSizeScore[String] = (s: String) =>
         OBJECT_SCORE + s.length * CHAR_SCORE
+
+      implicit def iterableGetSizeScore[T: GetSizeScore]: GetSizeScore[Iterable[T]] =
+        (xs: Iterable[T]) => {
+          val instance = implicitly[Iterate[Iterable]]
+          OBJECT_SCORE + instance.iterator(xs).map(_.sizeScore).sum
+        }
 
       implicit def listGetSizeScore[T: GetSizeScore]: GetSizeScore[List[T]] = (xs: List[T]) =>
         OBJECT_SCORE + xs.map(elem => elem.sizeScore).sum
