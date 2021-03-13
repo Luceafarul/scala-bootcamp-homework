@@ -60,6 +60,7 @@ object ImplicitsHomework {
      */
     final class MutableBoundedCache[K: GetSizeScore, V: GetSizeScore](maxSizeScore: SizeScore) {
       //with this you can use .sizeScore syntax on keys and values
+      import SuperVipCollections4s.syntax._
 
       /**
        * mutable.LinkedHashMap is a mutable map container
@@ -79,8 +80,7 @@ object ImplicitsHomework {
       def get(key: K): Option[V] = map.get(key)
 
       private def currentSizeScore(): SizeScore =
-        map.keys.map(k => implicitly[GetSizeScore[K]].apply(k)).sum +
-          map.values.map(v => implicitly[GetSizeScore[V]].apply(v)).sum
+        map.keys.map(k => k.sizeScore).sum + map.values.map(_.sizeScore).sum
     }
 
     /**
