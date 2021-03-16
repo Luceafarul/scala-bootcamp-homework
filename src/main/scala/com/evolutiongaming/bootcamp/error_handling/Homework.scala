@@ -37,12 +37,20 @@ object Homework {
       override def toString: String = "Card number should include only number"
     }
     final case object CardNumberInvalid extends ValidationError {
-
+      override def toString: String = "Card number have size 16 numbers"
     }
-    final case object CardExpirationDateFormatInvalid extends ValidationError
-    final case object CardExpired extends ValidationError
-    final case object SecurityCodeFormatInvalid extends ValidationError
-    final case object SecurityCodeInvalid extends ValidationError
+    final case object CardExpirationDateFormatInvalid extends ValidationError {
+      override def toString: String = "Card expiration should have MM/YYYY format"
+    }
+    final case object CardExpired extends ValidationError {
+      override def toString: String = "Card expired"
+    }
+    final case object SecurityCodeFormatInvalid extends ValidationError {
+      override def toString: String = "Card security code should have 3 or 4 integer number"
+    }
+    final case object SecurityCodeInvalid extends ValidationError {
+      override def toString: String = "Card security code is invalid"
+    }
   }
 
   object PaymentCardValidator {
