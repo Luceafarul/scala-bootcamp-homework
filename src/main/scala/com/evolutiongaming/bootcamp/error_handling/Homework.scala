@@ -2,7 +2,8 @@ package com.evolutiongaming.bootcamp.error_handling
 
 import cats.data.ValidatedNec
 import cats.syntax.all._
-import com.evolutiongaming.bootcamp.error_handling.Homework.ValidationError.{CardHolderNameInvalid, SecurityCodeFormatInvalid, SecurityCodeInvalid}
+
+import java.time.LocalDateTime
 
 // Homework. Place the solution under `error_handling` package in your homework repository.
 //
@@ -29,6 +30,9 @@ object Homework {
       override def toString: String =
         "Card holder name should include first name and last name separated by space"
     }
+    final case object CardHolderNameEmpty extends ValidationError {
+      override def toString: String = "Card holder should not be empty"
+    }
     final case object CardNumberIsNotNumeric extends ValidationError {
       override def toString: String = "Card number should include only number"
     }
@@ -42,6 +46,7 @@ object Homework {
   }
 
   object PaymentCardValidator {
+    import ValidationError._
 
     type AllErrorsOr[A] = ValidatedNec[ValidationError, A]
 
@@ -52,19 +57,67 @@ object Homework {
         else (maybeNames.head, maybeNames.last).validNec
       }
 
-      ???
+      def validateFirstAndLastNameIsNotEmpty(fullName: (String, String)): AllErrorsOr[(String, String)] = {
+        val (first, last) = fullName
+        if (first.trim.isEmpty && last.trim.isEmpty) CardHolderNameEmpty.invalidNec
+        else (first, last).validNec
+      }
+
+      (validateFirstAndLastNameExisting andThen validateFirstAndLastNameIsNotEmpty)
+        .map { case (first, last) => CardHolder(first, last) }
     }
 
-    private def validateCardNumber(number: String): AllErrorsOr[CardNumber] = ???
+    private def validateCardNumber(number: String): AllErrorsOr[CardNumber] = {
+      def validateCardNumberLength: AllErrorsOr[String] =
+        if (number.length != 16) CardNumberInvalid.invalidNec
+        else number.validNec
+
+      def validateCardNumberFormat: AllErrorsOr[String] =
+        if (number.forall(_.isDigit)) number.validNec
+        else CardNumberIsNotNumeric.invalidNec
+
+      validateCardNumberLength.productR(validateCardNumberFormat).map(CardNumber)
+    }
 
     private def validateExpirationDate(
       expirationDate: String,
       separator: String = "/"
     ): AllErrorsOr[CardExpirationDate] = {
-      def validateExpirationDateLength: AllErrorsOr[String] = ???
-      def validateExpirationDateFormat: AllErrorsOr[String] = ???
-      def validateExpirationDateContent: AllErrorsOr[String] = ???
-      ???
+      def validateExpirationDateFormat: AllErrorsOr[(String, String)] = {
+        val maybeExpireDate = expirationDate.split(separator)
+        if (maybeExpireDate.size == 2) (maybeExpireDate.head, maybeExpireDate.last).validNec
+        else CardExpirationDateFormatInvalid.invalidNec
+      }
+
+      def validateExpirationDateContent(expirationDate: (String, String)): AllErrorsOr[(String, String)] = {
+        val (expirationMonth, expirationYear) = expirationDate
+        if (isNonEmptyNumericMonth(expirationMonth) && isNonEmptyNumericYear(expirationYear))
+          expirationDate.validNec
+        else
+          CardExpirationDateFormatInvalid.invalidNec
+      }
+
+      def validateExpiration(expirationDate: (String, String)): AllErrorsOr[(String, String)] = {
+        val (expirationMonth, expirationYear) = expirationDate
+        val expMonth = expirationMonth.toInt
+        val expYear = expirationYear.toInt
+        val now = LocalDateTime.now()
+        if (now.getMonthValue < expMonth && now.getYear < expYear) CardExpired.invalidNec
+        else expirationDate.validNec
+      }
+
+      def isNonEmptyNumericMonth(s: String): Boolean =
+        isNonEmptyNumericWithLength(s, 2)
+
+      def isNonEmptyNumericYear(s: String): Boolean =
+        isNonEmptyNumericWithLength(s, 4)
+
+      def isNonEmptyNumericWithLength(s: String, length: Int): Boolean =
+        s.trim.nonEmpty && s.trim.length == length && s.trim.forall(_.isDigit)
+
+      (validateExpirationDateFormat
+        andThen validateExpirationDateContent
+        andThen validateExpiration).map { case (month, year) => CardExpirationDate(month, year) }
     }
 
     private def validateSecurityCode(securityCode: String): AllErrorsOr[CardSecurityCode] = {
