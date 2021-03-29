@@ -2,6 +2,7 @@ package com.evolutiongaming.bootcamp.json
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, ZonedDateTime}
+
 import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.traverse._
@@ -11,9 +12,11 @@ import io.circe.generic.JsonCodec
 import org.scalatest.EitherValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import scalaj.http.Http
 
 import scala.io.Source
 import scala.util.Try
+
 
 /**
  * HOMEWORK:
@@ -30,8 +33,8 @@ import scala.util.Try
  *
  * It would be nice to avoid using Encoder/Decoder.forProductN where you specify all field names
  */
-class HomeworkSpec extends AnyWordSpec with Matchers with EitherValues {
-  import HomeworkSpec._
+class CirceHomeworkSpec extends AnyWordSpec with Matchers with EitherValues {
+  import CirceHomeworkSpec._
 
   "NBA JSON API client" should {
     "get info about today games" in {
@@ -57,7 +60,7 @@ class HomeworkSpec extends AnyWordSpec with Matchers with EitherValues {
 
 }
 
-object HomeworkSpec {
+object CirceHomeworkSpec {
   @JsonCodec final case class TeamTotals(assists: String, fullTimeoutRemaining: String, plusMinus: String)
   @JsonCodec final case class TeamBoxScore(totals: TeamTotals)
   @JsonCodec final case class GameStats(hTeam: TeamBoxScore, vTeam: TeamBoxScore)

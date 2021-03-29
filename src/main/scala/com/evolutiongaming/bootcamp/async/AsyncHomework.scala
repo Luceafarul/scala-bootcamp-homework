@@ -5,6 +5,7 @@ import java.util.concurrent.Executors
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
+import scala.util.{Failure, Success}
 
 /**
  * Application:
@@ -19,9 +20,27 @@ import scala.io.Source
  * Try to test it on http://google.com!
  */
 object AsyncHomework extends App {
-  private implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+  private implicit val ec: ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-  //put your code there
+  // only unique - set
+  // in alphabetical order - sorted
+  // put your code there
+  val futureLinks = for {
+    body <- fetchPageBody(args.head)
+    links <- findLinkUrls(body)
+  } yield links
+
+  val futureServerNames = futureLinks.flatMap { links =>
+    Future.traverse(links) { link =>
+      fetchServerName(link)
+    }
+  }
+
+  futureServerNames.onComplete {
+    case Success(value) => value.map { case Some(value) => value }.sorted.toSet.foreach(println)
+    case Failure(exception) => System.err.println(s"Something went wrong: ${exception.getMessage}")
+  }
 
   private def fetchPageBody(url: String): Future[String] = {
     println(f"Fetching $url")
