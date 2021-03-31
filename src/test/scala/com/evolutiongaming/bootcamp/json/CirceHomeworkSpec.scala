@@ -9,6 +9,7 @@ import io.circe
 import io.circe.{Decoder, Encoder}
 import io.circe.parser._
 import io.circe.generic.JsonCodec
+import io.circe.generic.extras.{Configuration, ConfiguredJsonCodec}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.scalatest.EitherValues
 import org.scalatest.matchers.must.Matchers
@@ -71,12 +72,17 @@ object CirceHomeworkSpec {
   }
   implicit val localDateEncoder: Encoder[LocalDate] = Encoder.encodeString.contramap[LocalDate](_.toString)
 
-  @JsonCodec final case class TeamTotals(assists: String, fullTimeoutRemaining: String, plusMinus: String)
+  implicit val config: Configuration = Configuration.default.copy(
+    transformMemberNames = {
+      case "fullTimeoutRemaining" => "full_timeout_remaining"
+      case other => other
+    }
+  )
+
+  @ConfiguredJsonCodec final case class TeamTotals(assists: String, fullTimeoutRemaining: String, plusMinus: String)
   @JsonCodec final case class TeamBoxScore(totals: TeamTotals)
   @JsonCodec final case class GameStats(hTeam: TeamBoxScore, vTeam: TeamBoxScore)
   @JsonCodec final case class PrevMatchup(gameDate: LocalDate, gameId: String)
-
-  // stats -> hTeam + vTeam -> totals -> assists, fullTimeoutRemaining, plusMinus
 
   @JsonCodec final case class BoxScore(
     basicGameData: Game,
