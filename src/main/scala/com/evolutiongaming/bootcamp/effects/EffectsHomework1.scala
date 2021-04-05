@@ -1,5 +1,6 @@
 package com.evolutiongaming.bootcamp.effects
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -27,26 +28,40 @@ import scala.util.Try
  * Ask questions in the bootcamp chat if stuck on this task.
  */
 object EffectsHomework1 {
-  final class IO[A] {
-    def map[B](f: A => B): IO[B] = ???
-    def flatMap[B](f: A => IO[B]): IO[B] = ???
-    def *>[B](another: IO[B]): IO[B] = ???
-    def as[B](newValue: => B): IO[B] = ???
-    def void: IO[Unit] = ???
-    def attempt: IO[Either[Throwable, A]] = ???
-    def option: IO[Option[A]] = ???
-    def handleErrorWith[AA >: A](f: Throwable => IO[AA]): IO[AA] = ???
-    def redeem[B](recover: Throwable => B, map: A => B): IO[B] = ???
-    def redeemWith[B](recover: Throwable => IO[B], bind: A => IO[B]): IO[B] = ???
-    def unsafeRunSync(): A = ???
-    def unsafeToFuture(): Future[A] = ???
+  final class IO[A](private val run: () => A) {
+    def map[B](f: A => B): IO[B] = new IO[B](() => f(run()))
+    def flatMap[B](f: A => IO[B]): IO[B] = f(run())
+    def *>[B](another: IO[B]): IO[B] = another
+    def as[B](newValue: => B): IO[B] = new IO[B](() => newValue)
+    def void: IO[Unit] = new IO[Unit](() => ())
+    def attempt: IO[Either[Throwable, A]] = new IO[Either[Throwable, A]](() => Try(run()).toEither)
+    def option: IO[Option[A]] =
+      new IO[Option[A]](() =>
+        run() match {
+          case null => None
+          case a    => Some(a)
+        }
+      )
+    def handleErrorWith[AA >: A](f: Throwable => IO[AA]): IO[AA] = attempt.flatMap { case Left(e) => f(e) }
+    def redeem[B](recover: Throwable => B, map: A => B): IO[B] =
+      attempt.map {
+        case Right(value) => map(value)
+        case Left(error)  => recover(error)
+      }
+    def redeemWith[B](recover: Throwable => IO[B], bind: A => IO[B]): IO[B] =
+      attempt.flatMap {
+        case Right(value) => bind(value)
+        case Left(error)  => recover(error)
+      }
+    def unsafeRunSync(): A = run()
+    def unsafeToFuture(): Future[A] = Future(run())
   }
 
   object IO {
-    def apply[A](body: => A): IO[A] = ???
-    def suspend[A](thunk: => IO[A]): IO[A] = ???
-    def delay[A](body: => A): IO[A] = ???
-    def pure[A](a: A): IO[A] = ???
+    def apply[A](body: => A): IO[A] = new IO[A](() => body)
+    def suspend[A](thunk: => IO[A]): IO[A] = thunk
+    def delay[A](body: => A): IO[A] = apply(body)
+    def pure[A](a: A): IO[A] = apply(a)
     def fromEither[A](e: Either[Throwable, A]): IO[A] = ???
     def fromOption[A](option: Option[A])(orElse: => Throwable): IO[A] = ???
     def fromTry[A](t: Try[A]): IO[A] = ???
@@ -54,8 +69,13 @@ object EffectsHomework1 {
     def raiseError[A](e: Throwable): IO[A] = ???
     def raiseUnless(cond: Boolean)(e: => Throwable): IO[Unit] = ???
     def raiseWhen(cond: Boolean)(e: => Throwable): IO[Unit] = ???
-    def unlessA(cond: Boolean)(action: => IO[Unit]): IO[Unit] = ???
-    def whenA(cond: Boolean)(action: => IO[Unit]): IO[Unit] = ???
-    val unit: IO[Unit] = ???
+    def unlessA(cond: Boolean)(action: => IO[Unit]): IO[Unit] = whenA(!cond)(action)
+    def whenA(cond: Boolean)(action: => IO[Unit]): IO[Unit] =
+      new IO[Unit](() =>
+        while (cond) {
+          action
+        }
+      )
+    val unit: IO[Unit] = new IO[Unit](() => ())
   }
 }
