@@ -37,12 +37,16 @@ object EffectsHomework1 {
     def attempt: IO[Either[Throwable, A]] = new IO[Either[Throwable, A]](() => Try(run()).toEither)
     def option: IO[Option[A]] =
       new IO[Option[A]](() =>
-        run() match {
-          case null => None
-          case a    => Some(a)
+        Try(run()) match {
+          case Success(a) => Option(a)
+          case Failure(_) => Option.empty[A]
         }
       )
-    def handleErrorWith[AA >: A](f: Throwable => IO[AA]): IO[AA] = attempt.flatMap { case Left(e) => f(e) }
+    def handleErrorWith[AA >: A](f: Throwable => IO[AA]): IO[AA] =
+      attempt.flatMap {
+        case Right(a) => IO(a)
+        case Left(e)  => f(e)
+      }
     def redeem[B](recover: Throwable => B, map: A => B): IO[B] =
       attempt.map {
         case Right(value) => map(value)
