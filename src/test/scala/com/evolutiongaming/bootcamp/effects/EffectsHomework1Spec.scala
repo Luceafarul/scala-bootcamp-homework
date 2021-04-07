@@ -64,7 +64,7 @@ class EffectsHomework1Spec extends AnyWordSpec with Matchers {
       ioUnit.unsafeRunSync() shouldBe ()
     }
 
-    "attempt left ??? IO[Either[Throwable, A]]" in {
+    "attempt should wrap execution into Either, and return handle exception if it occur" in {
       val ioString = IO { "This is string" }
       val ioWithException = ioString.map(_.toInt).attempt
 
@@ -74,7 +74,7 @@ class EffectsHomework1Spec extends AnyWordSpec with Matchers {
       // TODO: how to validate left side?
     }
 
-    "attempt right ??? IO[Either[Throwable, A]]" in {
+    "attempt should wrap execution into Either, and return value if exception not raised" in {
       val ioString = IO { "10" }
       val ioInt = ioString.map(_.toInt).attempt
 
