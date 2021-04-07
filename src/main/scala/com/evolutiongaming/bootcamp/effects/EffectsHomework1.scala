@@ -2,7 +2,7 @@ package com.evolutiongaming.bootcamp.effects
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /*
  * Homework 1. Provide your own implementation of a subset of `IO` functionality.
@@ -62,13 +62,29 @@ object EffectsHomework1 {
     def suspend[A](thunk: => IO[A]): IO[A] = thunk
     def delay[A](body: => A): IO[A] = apply(body)
     def pure[A](a: A): IO[A] = apply(a)
-    def fromEither[A](e: Either[Throwable, A]): IO[A] = ???
-    def fromOption[A](option: Option[A])(orElse: => Throwable): IO[A] = ???
-    def fromTry[A](t: Try[A]): IO[A] = ???
-    def none[A]: IO[Option[A]] = ???
-    def raiseError[A](e: Throwable): IO[A] = ???
-    def raiseUnless(cond: Boolean)(e: => Throwable): IO[Unit] = ???
-    def raiseWhen(cond: Boolean)(e: => Throwable): IO[Unit] = ???
+    def fromEither[A](e: Either[Throwable, A]): IO[A] =
+      e match {
+        case Right(a)    => IO(a)
+        case Left(error) => raiseError(error)
+      }
+    def fromOption[A](option: Option[A])(orElse: => Throwable): IO[A] =
+      option match {
+        case Some(a) => IO(a)
+        case None    => raiseError(orElse)
+      }
+    def fromTry[A](t: Try[A]): IO[A] =
+      t match {
+        case Success(a)     => IO(a)
+        case Failure(error) => raiseError(error)
+      }
+    def none[A]: IO[Option[A]] = IO(Option.empty[A])
+    def raiseError[A](e: Throwable): IO[A] = IO(throw e)
+    def raiseUnless(cond: Boolean)(e: => Throwable): IO[Unit] = raiseWhen(!cond)(e)
+    def raiseWhen(cond: Boolean)(e: => Throwable): IO[Unit] =
+      IO {
+        if (!cond) raiseError(e)
+        else whenA(cond)(unit)
+      }
     def unlessA(cond: Boolean)(action: => IO[Unit]): IO[Unit] = whenA(!cond)(action)
     def whenA(cond: Boolean)(action: => IO[Unit]): IO[Unit] =
       new IO[Unit](() =>
