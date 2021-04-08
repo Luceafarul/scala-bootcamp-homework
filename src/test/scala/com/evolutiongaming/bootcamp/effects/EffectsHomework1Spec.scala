@@ -1,11 +1,11 @@
 package com.evolutiongaming.bootcamp.effects
 
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.wordspec.AsyncWordSpec
 
-import scala.util.Try
+import scala.concurrent.Future
 
-class EffectsHomework1Spec extends AnyWordSpec with Matchers {
+class EffectsHomework1Spec extends AsyncWordSpec with Matchers {
 
   import EffectsHomework1._
 
@@ -17,9 +17,14 @@ class EffectsHomework1Spec extends AnyWordSpec with Matchers {
       io should not be "This is string"
     }
 
-    "unsafeRunSync should return value" in {
-      val io = IO { "This is string" }
+    "unsafeRunSync should produce IO value" in {
+      val io = IO("This is string")
       io.unsafeRunSync() shouldBe "This is string"
+    }
+
+    "unsafeToFuture should produce IO value and wrap it into future" in {
+      val io = IO("This is string")
+      io.unsafeToFuture() map { result => result shouldBe "This is string" }
     }
 
     "map should apply function to IO value" in {
@@ -102,10 +107,46 @@ class EffectsHomework1Spec extends AnyWordSpec with Matchers {
     "handleErrorWith should recover after exception" in {
       val defaultValue = 0
       val ioString = IO { "This is string" }
-      val ioWithException = ioString.map(_.toInt).handleErrorWith(e => IO { defaultValue })
+      val ioWithException = ioString.map(_.toInt).handleErrorWith(_ => IO { defaultValue })
 
       ioWithException shouldBe a[IO[Int]]
       ioWithException.unsafeRunSync() shouldBe defaultValue
+    }
+
+    "redeem should recover after exception with recover function" in {
+      val defaultValue = 0
+      val ioString = IO { "This is string" }
+      val ioWithException = ioString.map(_.toInt).redeem(_ => defaultValue, x => x * x)
+
+      ioWithException shouldBe a[IO[Int]]
+      ioWithException.unsafeRunSync() shouldBe defaultValue
+    }
+
+    "redeem should transform result of source on evaluation if exception not occur" in {
+      val defaultValue = 0
+      val ioString = IO { "10" }
+      val ioWithException = ioString.map(_.toInt).redeem(_ => IO { defaultValue }, x => x * x)
+
+      ioWithException shouldBe a[IO[Int]]
+      ioWithException.unsafeRunSync() shouldBe 100
+    }
+
+    "redeemWith should recover after exception with recover function" in {
+      val defaultValue = 0
+      val ioString = IO { "This is string" }
+      val ioWithException = ioString.map(_.toInt).redeemWith(_ => IO(defaultValue), x => IO(x * x))
+
+      ioWithException shouldBe a[IO[Int]]
+      ioWithException.unsafeRunSync() shouldBe defaultValue
+    }
+
+    "redeemWith should transform result of source on evaluation if exception not occur" in {
+      val defaultValue = 0
+      val ioString = IO("10")
+      val ioWithException = ioString.map(_.toInt).redeemWith(_ => IO(defaultValue), x => IO(x * x))
+
+      ioWithException shouldBe a[IO[Int]]
+      ioWithException.unsafeRunSync() shouldBe 100
     }
   }
 }
