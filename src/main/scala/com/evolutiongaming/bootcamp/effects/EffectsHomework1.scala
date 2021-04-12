@@ -84,18 +84,9 @@ object EffectsHomework1 {
     def none[A]: IO[Option[A]] = IO(Option.empty[A])
     def raiseError[A](e: Throwable): IO[A] = IO(throw e)
     def raiseUnless(cond: Boolean)(e: => Throwable): IO[Unit] = raiseWhen(!cond)(e)
-    def raiseWhen(cond: Boolean)(e: => Throwable): IO[Unit] =
-      IO {
-        if (!cond) raiseError(e)
-        else whenA(cond)(unit)
-      }
+    def raiseWhen(cond: Boolean)(e: => Throwable): IO[Unit] = whenA(cond)(raiseError(e))
     def unlessA(cond: Boolean)(action: => IO[Unit]): IO[Unit] = whenA(!cond)(action)
-    def whenA(cond: Boolean)(action: => IO[Unit]): IO[Unit] =
-      new IO[Unit](() =>
-        while (cond) {
-          action
-        }
-      )
+    def whenA(cond: Boolean)(action: => IO[Unit]): IO[Unit] = if (cond) action else unit
     val unit: IO[Unit] = new IO[Unit](() => ())
   }
 }
