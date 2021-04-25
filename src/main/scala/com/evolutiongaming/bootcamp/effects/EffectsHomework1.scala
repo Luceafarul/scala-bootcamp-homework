@@ -30,10 +30,10 @@ import scala.util.{Failure, Success, Try}
 object EffectsHomework1 {
   final class IO[A](private val run: () => A) {
     def map[B](f: A => B): IO[B] = new IO[B](() => f(run()))
-    def flatMap[B](f: A => IO[B]): IO[B] = f(run())
-    def *>[B](another: IO[B]): IO[B] = another
-    def as[B](newValue: => B): IO[B] = new IO[B](() => newValue)
-    def void: IO[Unit] = new IO[Unit](() => ())
+    def flatMap[B](f: A => IO[B]): IO[B] = new IO[B](() => f(run()).run())
+    def *>[B](another: IO[B]): IO[B] = this.flatMap(_ => another)
+    def as[B](newValue: => B): IO[B] = this.map(_ => newValue)
+    def void: IO[Unit] = this.map(_ => ())
     def attempt: IO[Either[Throwable, A]] = new IO[Either[Throwable, A]](() => Try(run()).toEither)
     def option: IO[Option[A]] =
       new IO[Option[A]](() =>
@@ -63,7 +63,7 @@ object EffectsHomework1 {
 
   object IO {
     def apply[A](body: => A): IO[A] = new IO[A](() => body)
-    def suspend[A](thunk: => IO[A]): IO[A] = thunk
+    def suspend[A](thunk: => IO[A]): IO[A] = unit.flatMap(_ => thunk)
     def delay[A](body: => A): IO[A] = apply(body)
     def pure[A](a: A): IO[A] = apply(a)
     def fromEither[A](e: Either[Throwable, A]): IO[A] =
