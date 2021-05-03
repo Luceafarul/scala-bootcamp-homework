@@ -3,7 +3,6 @@ package com.evolutiongaming.bootcamp.effects
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
-import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 class EffectsHomework1Spec extends AsyncWordSpec with Matchers {
@@ -45,10 +44,10 @@ class EffectsHomework1Spec extends AsyncWordSpec with Matchers {
     }
 
     "*> should return second IO" in {
-      val ioString = IO { "10" }
+      val ioPrinting = IO { println("10") }
       val ioInt = IO { 73 }
 
-      val result = ioString *> ioInt
+      val result = ioPrinting *> ioInt
 
       result shouldBe a[IO[Int]]
       result.unsafeRunSync() shouldBe 73
