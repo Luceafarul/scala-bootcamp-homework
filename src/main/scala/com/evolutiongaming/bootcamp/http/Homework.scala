@@ -11,7 +11,6 @@ import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
 import java.util.UUID
-import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext.global
 import scala.util.Random
 
@@ -39,7 +38,6 @@ object GuessServer extends IOApp {
     min + random.nextInt((max - min) + 1)
   }
 
-  // TODO ref and map?
   private var players = Set.empty[Player]
   private var playersAndNumbers = Map.empty[UUID, UserGuess]
 
@@ -48,19 +46,19 @@ object GuessServer extends IOApp {
   val guessGameServer = HttpRoutes
     .of[IO] {
       case req @ POST -> Root / "start" =>
-        req.as[StartGameRequest].flatMap { start =>
-          // 1. Save new player
-          // 2. Save number for guessing
-          // 3. Create response
-          val player = Player(UUID.randomUUID(), start.name)
+        req.as[StartGameRequest].flatMap { startGameRequest =>
+          val player = Player(UUID.randomUUID(), startGameRequest.name)
           players = players + player
-          playersAndNumbers += (player.id -> UserGuess(randomNumber(start.min, start.max), guessTrying))
-          val gameStarted = StartGameResponse(
-            s"Welcome, brave ${start.name}! I guess a number and you have $guessTrying trying",
-            guessTrying,
-            player.id
+          val guessedNumber = randomNumber(startGameRequest.range.from, startGameRequest.range.to)
+          playersAndNumbers += (player.id -> UserGuess(guessedNumber, guessTrying))
+
+          Ok(
+            StartGameResponse(
+              s"Welcome, brave ${startGameRequest.name}! I guess a number and you have $guessTrying trying",
+              guessTrying,
+              player.id
+            )
           )
-          Ok(gameStarted)
         }
       case req @ POST -> Root / "guess" =>
         req.as[GuessRequest].flatMap { guessRequest =>
@@ -68,16 +66,11 @@ object GuessServer extends IOApp {
 
           playersAndNumbers.get(playerId) match {
             case Some(userGuess) =>
-              // 1. Check user if exist -- else NotFound
-              // 2. Check guess number and guess trying
-              // 3. Check win condition
-              // 4. Create response
               val guessedNumber = userGuess.number
-              println(guessedNumber)
               if (guessRequest.number == guessedNumber)
                 Ok(
                   GuessResponse(
-                    s"Year, it's $guessedNumber! You won!",
+                    s"Yeah, it's $guessedNumber! You won!",
                     guess = true,
                     gameEnded = true,
                     isBiggerThanGuessed = false
@@ -95,13 +88,13 @@ object GuessServer extends IOApp {
               } else {
                 val remainGuessTrying = userGuess.guessTrying - 1
                 playersAndNumbers += (playerId -> UserGuess(guessedNumber, remainGuessTrying))
-                println(playersAndNumbers)
 
-                val isBiggerThatGuessedNumber: Boolean = guessRequest.number > guessedNumber
+                val isBiggerThatGuessedNumber: Boolean = guessRequest.number >= guessedNumber
 
                 Ok(
                   GuessResponse(
-                    s"No, it's number bigger / lower than I guess. You have guess trying: $remainGuessTrying",
+                    s"No, it's number ${if (isBiggerThatGuessedNumber) "bigger" else "lower"} than I guess. " +
+                      s"You have guess trying: $remainGuessTrying",
                     guess = false,
                     gameEnded = false,
                     isBiggerThanGuessed = isBiggerThatGuessedNumber
@@ -125,11 +118,11 @@ object GuessServer extends IOApp {
 }
 
 object Game {
-  // TODO: add validation min < max, user is unique
-  @JsonCodec final case class Player(id: UUID, name: String)
-  @JsonCodec final case class StartGameRequest(name: String, min: Int, max: Int)
+  final case class Player(id: UUID, name: String)
+  @JsonCodec final case class Range(from: Int, to: Int)
+  @JsonCodec final case class StartGameRequest(name: String, range: Range)
   @JsonCodec final case class StartGameResponse(welcomeMessage: String, guessCount: Int, playerId: UUID)
-  @JsonCodec final case class GuessRequest(playerId: UUID, playerName: String, number: Int)
+  @JsonCodec final case class GuessRequest(playerId: UUID, number: Int)
   @JsonCodec final case class GuessResponse(message: String, guess: Boolean, gameEnded: Boolean, isBiggerThanGuessed: Boolean)
 
   final case class UserGuess(number: Int, guessTrying: Int)
@@ -141,10 +134,6 @@ object GuessClient extends IOApp {
 
   private val uri = uri"http://localhost:9001"
 
-  val blockingPool = Executors.newFixedThreadPool(2)
-  val blocker = Blocker.liftExecutorService(blockingPool)
-//  val client = JavaNetClientBuilder[IO](blocker).create
-
   override def run(args: List[String]): IO[ExitCode] = {
     var min = 1
     var max = 15
@@ -153,19 +142,16 @@ object GuessClient extends IOApp {
     def loop(playerId: UUID, guessNumber: Int): IO[GuessResponse] = {
       println()
       println(guessNumber)
-      tryToGuess(playerId, "Yaroslav", guessNumber).flatMap { resp =>
+      tryToGuess(playerId, guessNumber).flatMap { resp =>
         if (!isGameFinished(resp)) {
-          println(resp)
           if (resp.isBiggerThanGuessed) {
             max = guessNumber
-            loop(playerId, (min + guessNumber) / 2)
-          }
-          else {
+            loop(playerId, guessNumber / 2)
+          } else {
             min = guessNumber
-            loop(playerId, (max + guessNumber + 1) / 2)
+            loop(playerId, (max + guessNumber) / 2)
           }
         } else {
-          println(resp)
           resp.pure[IO]
         }
       }
@@ -173,20 +159,24 @@ object GuessClient extends IOApp {
 
     BlazeClientBuilder[IO](global).resource.use { _ =>
       for {
-        startGameResponse <- initGame("Yaroslav", min, max)
-        _ <- loop(startGameResponse.playerId, initNumber)
+        startGameResponse0 <- initGame("Yaroslav", min, max)
+        startGameResponse1 <- initGame("Marie", min, max)
+        startGameResponse2 <- initGame("Pro", min, max)
+        _ <- loop(startGameResponse0.playerId, initNumber) >>= (resp => IO(println(resp)))
+        _ <- loop(startGameResponse1.playerId, initNumber) >>= (resp => IO(println(resp)))
+        _ <- loop(startGameResponse2.playerId, initNumber) >>= (resp => IO(println(resp)))
       } yield ()
     }.as(ExitCode.Success)
   }
 
-  def initGame(name: String, min: Int, max: Int): IO[StartGameResponse] =
+  def initGame(name: String, from: Int, to: Int): IO[StartGameResponse] =
     BlazeClientBuilder[IO](global).resource.use { client =>
-      client.expect[StartGameResponse](Method.POST(StartGameRequest(name, min, max), uri / "start"))
+      client.expect[StartGameResponse](Method.POST(StartGameRequest(name, Range(from, to)), uri / "start"))
     }
 
-  def tryToGuess(playerId: UUID, name: String, number: Int): IO[GuessResponse] =
+  def tryToGuess(playerId: UUID, number: Int): IO[GuessResponse] =
     BlazeClientBuilder[IO](global).resource.use { client =>
-      client.expect[GuessResponse](Method.POST(GuessRequest(playerId, name, number), uri / "guess"))
+      client.expect[GuessResponse](Method.POST(GuessRequest(playerId, number), uri / "guess"))
     }
 
   def isGameFinished(guessResponse: GuessResponse): Boolean =
