@@ -3,4 +3,5 @@
 ---
 
 - [x] http4s
-- [ ] http4s and websocket
+- [x] http4s and websocket
+- [ ] databases (doobie)
